@@ -11,7 +11,7 @@ of the gRPC implementation.
 
 ### Run:
    
-   Make sure the pb2 files have been generated (see the previous step, if not)
+   Make sure the pb2 files have been generated (see the next step, if not)
 
    _then_
 

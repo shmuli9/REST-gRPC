@@ -34,34 +34,44 @@
         $("#btnSubmit").on("click", function (e) {
             e.preventDefault()
             const form = new FormData()
+            let num_files = $(".csv").length
 
-            {#$(".csv").each(async function (i, el) {
-                #}{#console.log(i)#}{#
-                console.log(el)
-                #}{#console.log("files")#}{#
+            $(".csv").each(function (i, el) {
                 let files;
                 files = $(el).prop("files")
-                const reader = new FileReader();
-                reader.onload = () => {
-                    form.append(`mat${i + 1}`, files[0], files[0].name)
-                };
-                console.log(files)
-                await reader.readAsDataURL(files[0]);
-            })#}
 
-            let files = $("#mat1").prop("files")
-            form.append(`mat${1}`, files[0], files[0].name)
+                if (files.length > 0) {
+                    const file = files[0]
+                    const r = new FileReader()
 
-            {#f.append()#}
-            $.ajax({
-                url: "/mult_matrices",
-                type: "POST",
-                data: form,
-                processData: false,
-                contentType: 'multipart/form-data',
-                mimeType: 'multipart/form-data',
+                    r.onload = () => {
+                        console.log(r.result)
+                        fetch(r.result)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                form.append(`mat${i+1}`, blob, file.name)
+                                if (!--num_files) submit(form)
+                            })
+                    }
+
+                    r.readAsDataURL(file)
+                }
             })
-                .done(data => console.log(data))
+
+            {#let files = $("#mat1").prop("files")#}
+            {#form.append(`mat${1}`, files[0], files[0].name)#}
+
+            const submit = (f) => {
+                $.ajax({
+                    url: "/mult_matrices",
+                    type: "POST",
+                    data: f,
+                    processData: false,
+                    contentType: false,
+                })
+                    .done(data => console.log(data))
+            }
+
         })
     })
 </script>
