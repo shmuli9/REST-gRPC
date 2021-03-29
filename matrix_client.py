@@ -1,4 +1,3 @@
-from __future__ import print_function
 import logging
 
 import grpc
@@ -6,22 +5,11 @@ import grpc
 import matrix_pb2
 import matrix_pb2_grpc
 
-MAX = 4
-
-
-def run():
-    A = [[i + (4 * j) + 1 for i in range(4)] for j in range(4)]
-    B = [[i + (4 * j) + 1 for i in range(4)] for j in range(4)]
-
-    result = multiplyMatrixBlock(A, B)
-    for i in range(MAX):
-        for j in range(MAX):
-            print(result[i][j], end=" ")
-        print()
-
 
 def multiplyMatrixBlock(A, B):
+    MAX = len(A)
     bSize = 2
+
     A1 = [[0 for _ in range(MAX)] for _ in range(MAX)]
     A2 = [[0 for _ in range(MAX)] for _ in range(MAX)]
     A3 = [[0 for _ in range(MAX)] for _ in range(MAX)]
@@ -109,6 +97,17 @@ def multiplyMatrixBlock(A, B):
             res[i][j] = D3[i - bSize][j - bSize]
 
     return res
+
+
+def run():
+    A = [[i + (4 * j) + 1 for i in range(4)] for j in range(4)]
+    B = [[i + (4 * j) + 1 for i in range(4)] for j in range(4)]
+
+    result = multiplyMatrixBlock(A, B)
+    for i in range(MAX):
+        for j in range(MAX):
+            print(result[i][j], end=" ")
+        print()
 
 
 if __name__ == '__main__':

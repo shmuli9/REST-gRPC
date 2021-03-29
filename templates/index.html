@@ -5,22 +5,35 @@
     <title>Multiply Matrices</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <style>
+        td {
+            border: 2px black solid;
+            height: 2em;
+            width: 2em;
+            font-weight: bold;
+            font-size: xx-large;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Multiply Matrices</h1>
-    <p>Matrices should be in csv format with values seprated by a space, and rows on different lines</p>
+    <p>Matrices should be in a txt file with values separated by a space, and rows on different lines</p>
     <p>For example:</p>
     <p class="mb-0">1 2 3</p>
     <p class="mb-0">0 4 1</p>
     <p>0 2 3</p>
 
     <form action="">
-        <input class="form-control mb-4 csv" id="mat1" type="file" accept=".csv">
-        <input class="form-control mb-5 csv" id="mat2" type="file" accept=".csv">
+        <input class="form-control mb-4 txt" id="mat1" type="file" accept=".txt">
+        <input class="form-control mb-5 txt" id="mat2" type="file" accept=".txt">
         <button class="btn btn-success" id="btnSubmit">Submit</button>
     </form>
+
+    <div id="result-container" class="mt-5" style="width: 50%; margin: 0 auto;">
+    </div>
 </div>
 
 
@@ -34,9 +47,9 @@
         $("#btnSubmit").on("click", function (e) {
             e.preventDefault()
             const form = new FormData()
-            let num_files = $(".csv").length
+            let num_files = $(".txt").length
 
-            $(".csv").each(function (i, el) {
+            $(".txt").each(function (i, el) {
                 let files;
                 files = $(el).prop("files")
 
@@ -45,11 +58,10 @@
                     const r = new FileReader()
 
                     r.onload = () => {
-                        console.log(r.result)
                         fetch(r.result)
                             .then(res => res.blob())
                             .then(blob => {
-                                form.append(`mat${i+1}`, blob, file.name)
+                                form.append(`mat${i + 1}`, blob, file.name)
                                 if (!--num_files) submit(form)
                             })
                     }
@@ -58,8 +70,20 @@
                 }
             })
 
-            {#let files = $("#mat1").prop("files")#}
-            {#form.append(`mat${1}`, files[0], files[0].name)#}
+            const renderResult = (result) => {
+                const table = $("<table/>")
+
+                for (let i = 0; i < result.length; i++) {
+                    const result_row = result[i]
+                    const row = $("<tr/>")
+                    for (let j = 0; j < result_row.length; j++) {
+                        row.append($("<td/>").text(result_row[j]))
+                    }
+                    table.append(row)
+                }
+
+                $("#result-container").empty().append(table)
+            }
 
             const submit = (f) => {
                 $.ajax({
@@ -69,7 +93,9 @@
                     processData: false,
                     contentType: false,
                 })
-                    .done(data => console.log(data))
+                    .done(data => {
+                        renderResult(data)
+                    })
             }
 
         })
