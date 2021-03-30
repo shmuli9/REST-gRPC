@@ -14,6 +14,10 @@
             font-size: xx-large;
             text-align: center;
         }
+
+        table {
+
+        }
     </style>
 </head>
 <body>
@@ -32,7 +36,17 @@
         <button class="btn btn-success" id="btnSubmit">Submit</button>
     </form>
 
-    <div id="result-container" class="mt-5" style="width: 50%; margin: 0 auto;">
+    <div class="row mt-5">
+        <div id="show-mat1" class="col col-3">
+
+        </div>
+        X
+        <div id="show-mat2" class="col col-3">
+
+        </div>
+        =
+        <div id="result-container" class="col col-4">
+        </div>
     </div>
 </div>
 
@@ -70,7 +84,7 @@
                 }
             })
 
-            const renderResult = (result) => {
+            const renderResult = (result, containerID) => {
                 const table = $("<table/>")
 
                 for (let i = 0; i < result.length; i++) {
@@ -82,7 +96,7 @@
                     table.append(row)
                 }
 
-                $("#result-container").empty().append(table)
+                $(`#${containerID}`).empty().append(table)
             }
 
             const submit = (f) => {
@@ -94,7 +108,9 @@
                     contentType: false,
                 })
                     .done(data => {
-                        renderResult(data)
+                        renderResult(data.res, "result-container")
+                        renderResult(data.mat1, "show-mat1")
+                        renderResult(data.mat2, "show-mat2")
                     })
             }
 

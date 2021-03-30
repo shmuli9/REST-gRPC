@@ -25,7 +25,13 @@ def do_maths():
 
         print(result)
 
-    return jsonify(result), 200
+    out = {
+        "res": result,
+        "mat1": mat1,
+        "mat2": mat2
+    }
+
+    return jsonify(out), 200
 
 
 def parse_matrix(mat):
