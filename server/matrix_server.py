@@ -32,19 +32,24 @@ class Matrix(matrix_pb2_grpc.MatrixCalcServicer):
     def BlockAdd(self, request, context):
         A = mat2list(request.matA)
         B = mat2list(request.matB)
-        C = [[A[i][j] + B[i][j] for j in range(4)] for i in range(4)]
+        MAX = len(A)
+
+        C = [[A[i][j] + B[i][j] for j in range(MAX)] for i in range(MAX)]
 
         return matrix_pb2.Reply(matResult=list2mat(C))
 
     def BlockMult(self, request, context):
         A = mat2list(request.matA)
         B = mat2list(request.matB)
+        MAX = len(A)
 
-        C = [[0 for j in range(4)] for i in range(4)]
-        C[0][0] = A[0][0] * B[0][0] + A[0][1] * B[1][0]
-        C[0][1] = A[0][0] * B[0][1] + A[0][1] * B[1][1]
-        C[1][0] = A[1][0] * B[0][0] + A[1][1] * B[1][0]
-        C[1][1] = A[1][0] * B[0][1] + A[1][1] * B[1][1]
+        C = [[0 for j in range(MAX)] for i in range(MAX)]
+
+        for i in range(MAX):
+            for j in range(MAX):
+                for k in range(MAX):
+                    C[i][j] += A[i][k] * B[k][j]
+
         return matrix_pb2.Reply(matResult=list2mat(C))
 
 

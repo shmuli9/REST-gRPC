@@ -45,45 +45,9 @@ def multiplyMatrixBlock(A, B):
             D1[i - bSize][j - bSize] = A[i][j]
             D2[i - bSize][j - bSize] = B[i][j]
 
-    def list2mat(list_matrix):
-        rpc_matrix = matrix_pb2.Mat()
-        for row in list_matrix:
-            v = matrix_pb2.Vector(value=row)
-            rpc_matrix.row.extend([v])
-        return rpc_matrix
-
-    def mat2list(rpc_matrix):
-        l = []
-        for row in rpc_matrix.row:
-            r = []
-            for val in row.value:
-                r.append(val)
-            l.append(r)
-        return l
-
-    servers = [f"localhost:{port}" for port in range(8080, 8088)]
-    # servers = ["localhost:8080"]
-
-    def getStub():
-        server = random.choice(servers)
-        # print(f"using server {server}")
-        stub = matrix_pb2_grpc.MatrixCalcStub(grpc.insecure_channel(server))
-        return stub
-
-    def add(A, B):
-        stub = getStub()
-        return stub.BlockAdd(matrix_pb2.Request(matA=A, matB=B)).matResult
-
-    def mult(A, B):
-        stub = getStub()
-        return stub.BlockMult(matrix_pb2.Request(matA=list2mat(A), matB=list2mat(B))).matResult
-
     A3 = mat2list(add(mult(A1, A2), mult(B1, C2)))
-
     B3 = mat2list(add(mult(A1, B2), mult(B1, D2)))
-
     C3 = mat2list(add(mult(C1, A2), mult(D1, C2)))
-
     D3 = mat2list(add(mult(C1, B2), mult(D1, D2)))
 
     for i in range(bSize):
@@ -103,6 +67,44 @@ def multiplyMatrixBlock(A, B):
             res[i][j] = D3[i - bSize][j - bSize]
 
     return res
+
+
+servers = [f"localhost:{port}" for port in range(8080, 8088)]
+
+
+def getStub():
+    server = random.choice(servers)
+    # print(f"using server {server}")
+    stub = matrix_pb2_grpc.MatrixCalcStub(grpc.insecure_channel(server))
+    return stub
+
+
+def add(A, B):
+    stub = getStub()
+    return stub.BlockAdd(matrix_pb2.Request(matA=A, matB=B)).matResult
+
+
+def mult(A, B):
+    stub = getStub()
+    return stub.BlockMult(matrix_pb2.Request(matA=list2mat(A), matB=list2mat(B))).matResult
+
+
+def mat2list(rpc_matrix):
+    l = []
+    for row in rpc_matrix.row:
+        r = []
+        for val in row.value:
+            r.append(val)
+        l.append(r)
+    return l
+
+
+def list2mat(list_matrix):
+    rpc_matrix = matrix_pb2.Mat()
+    for row in list_matrix:
+        v = matrix_pb2.Vector(value=row)
+        rpc_matrix.row.extend([v])
+    return rpc_matrix
 
 
 def run():
