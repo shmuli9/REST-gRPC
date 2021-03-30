@@ -1,5 +1,7 @@
-from concurrent import futures
 import logging
+import os
+from concurrent import futures
+from multiprocessing import Process
 
 import grpc
 
@@ -24,6 +26,7 @@ def mat2list(rpc_matrix):
         l.append(r)
     return l
 
+
 class Matrix(matrix_pb2_grpc.MatrixCalcServicer):
 
     def BlockAdd(self, request, context):
@@ -45,15 +48,18 @@ class Matrix(matrix_pb2_grpc.MatrixCalcServicer):
         return matrix_pb2.Reply(matResult=list2mat(C))
 
 
-def serve():
+def serve(port=8080):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     matrix_pb2_grpc.add_MatrixCalcServicer_to_server(Matrix(), server)
-    server.add_insecure_port('[::]:8080')
+    server.add_insecure_port(f'[::]:{port}')
     server.start()
-    print("Server started")
+    print(f"Server started on port {port} (pid: {os.getpid()})")
     server.wait_for_termination()
 
 
 if __name__ == '__main__':
     logging.basicConfig()
-    serve()
+    for port in range(8080, 8088):
+        p = Process(target=serve, args=(port,))
+        p.start()
+    # serve()

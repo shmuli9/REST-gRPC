@@ -1,4 +1,5 @@
 import logging
+import random
 
 import grpc
 
@@ -60,25 +61,30 @@ def multiplyMatrixBlock(A, B):
             l.append(r)
         return l
 
-    with grpc.insecure_channel('localhost:8080') as channel:
-        stub = matrix_pb2_grpc.MatrixCalcStub(channel)
+    servers = [f"localhost:{port}" for port in range(8080, 8088)]
+    # servers = ["localhost:8080"]
 
-        A3 = mat2list(stub.BlockAdd(
-            matrix_pb2.Request(matA=stub.BlockMult(matrix_pb2.Request(matA=list2mat(A1), matB=list2mat(A2))).matResult,
-                               matB=stub.BlockMult(matrix_pb2.Request(matA=list2mat(B1), matB=list2mat(C2))).matResult)
-        ).matResult)
-        B3 = mat2list(stub.BlockAdd(
-            matrix_pb2.Request(matA=stub.BlockMult(matrix_pb2.Request(matA=list2mat(A1), matB=list2mat(B2))).matResult,
-                               matB=stub.BlockMult(matrix_pb2.Request(matA=list2mat(B1), matB=list2mat(D2))).matResult)
-        ).matResult)
-        C3 = mat2list(stub.BlockAdd(
-            matrix_pb2.Request(matA=stub.BlockMult(matrix_pb2.Request(matA=list2mat(C1), matB=list2mat(A2))).matResult,
-                               matB=stub.BlockMult(matrix_pb2.Request(matA=list2mat(D1), matB=list2mat(C2))).matResult)
-        ).matResult)
-        D3 = mat2list(stub.BlockAdd(
-            matrix_pb2.Request(matA=stub.BlockMult(matrix_pb2.Request(matA=list2mat(C1), matB=list2mat(B2))).matResult,
-                               matB=stub.BlockMult(matrix_pb2.Request(matA=list2mat(D1), matB=list2mat(D2))).matResult)
-        ).matResult)
+    def getStub():
+        server = random.choice(servers)
+        # print(f"using server {server}")
+        stub = matrix_pb2_grpc.MatrixCalcStub(grpc.insecure_channel(server))
+        return stub
+
+    def add(A, B):
+        stub = getStub()
+        return stub.BlockAdd(matrix_pb2.Request(matA=A, matB=B)).matResult
+
+    def mult(A, B):
+        stub = getStub()
+        return stub.BlockMult(matrix_pb2.Request(matA=list2mat(A), matB=list2mat(B))).matResult
+
+    A3 = mat2list(add(mult(A1, A2), mult(B1, C2)))
+
+    B3 = mat2list(add(mult(A1, B2), mult(B1, D2)))
+
+    C3 = mat2list(add(mult(C1, A2), mult(D1, C2)))
+
+    D3 = mat2list(add(mult(C1, B2), mult(D1, D2)))
 
     for i in range(bSize):
         for j in range(bSize):
