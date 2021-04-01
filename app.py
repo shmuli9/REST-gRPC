@@ -14,7 +14,6 @@ app = Flask(__name__)
 
 @app.route('/mult_matrices', methods=["POST"])
 def do_maths():
-    # check if the post request has the file part
     deadline = request.form.get("deadline", 90, int)
 
     if 'mat1' not in request.files or "mat2" not in request.files:
@@ -30,8 +29,8 @@ def do_maths():
         t1 = time.time()
         result = asyncio.run(multiplyMatrixBlock(mat1, mat2, deadline))
         total_time = time.time() - t1
-        # print(result)
-        print(total_time)
+
+        print(f"total time taken: {total_time} seconds")
 
         out = {
             "res": result,

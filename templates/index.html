@@ -31,8 +31,14 @@
     <p>0 2 3</p>
 
     <form action="">
+        <label for="useFile">Upload file?</label>
+        <input type="checkbox" id="useFile" checked>
         <input class="form-control mb-4 txt" id="mat1" type="file" accept=".txt">
         <input class="form-control mb-5 txt" id="mat2" type="file" accept=".txt">
+        <input class="form-control mb-5 w-25" id="deadline" type="number" placeholder="Deadline (default 90)">
+
+        <input class="form-control mb-5 w-50" id="dimension" type="number" value="256"
+               placeholder="Matrix Dimension - used if no files are uploaded - must be a power of 2 (default 256)">
         <button class="btn btn-success" id="btnSubmit">Submit</button>
     </form>
 
@@ -57,32 +63,8 @@
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
     $(function () {
-        {#alert("working")#}
         $("#btnSubmit").on("click", function (e) {
             e.preventDefault()
-            const form = new FormData()
-            let num_files = $(".txt").length
-
-            $(".txt").each(function (i, el) {
-                let files;
-                files = $(el).prop("files")
-
-                if (files.length > 0) {
-                    const file = files[0]
-                    const r = new FileReader()
-
-                    r.onload = () => {
-                        fetch(r.result)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                form.append(`mat${i + 1}`, blob, file.name)
-                                if (!--num_files) submit(form)
-                            })
-                    }
-
-                    r.readAsDataURL(file)
-                }
-            })
 
             const renderResult = (result, containerID) => {
                 const table = $("<table/>")
@@ -114,6 +96,36 @@
                     })
             }
 
+            const form = new FormData()
+
+            form.append("deadline", $("#deadline").val())
+            form.append("dimension", $("#dimension").val())
+
+            if ($('#useFile').is(':checked')) {
+                let num_files = $(".txt").length
+                $(".txt").each(function (i, el) {
+                    let files;
+                    files = $(el).prop("files")
+
+                    if (files.length > 0) {
+                        const file = files[0]
+                        const r = new FileReader()
+
+                        r.onload = () => {
+                            fetch(r.result)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    form.append(`mat${i + 1}`, blob, file.name)
+                                    if (!--num_files) submit(form)
+                                })
+                        }
+
+                        r.readAsDataURL(file)
+                    }
+                })
+            } else {
+                submit(form)
+            }
         })
     })
 </script>
