@@ -93,7 +93,10 @@
                         renderResult(data.res, "result-container")
                         renderResult(data.mat1, "show-mat1")
                         renderResult(data.mat2, "show-mat2")
-                    })
+                    }).fail(error => {
+                        console.log(error.responseText)
+                    }
+                )
             }
 
             const form = new FormData()

@@ -25,7 +25,7 @@ def do_maths():
         mat2 = parse_matrix(request.files['mat2'])
 
     # print(mat1, mat2, deadline)
-    if mat1 != [] and mat2 != []:
+    if check_matrix(mat1) and check_matrix(mat2):
         t1 = time.time()
         result = asyncio.run(multiplyMatrixBlock(mat1, mat2, deadline))
         total_time = time.time() - t1
@@ -39,6 +39,8 @@ def do_maths():
         }
 
         return jsonify(out), 200
+    else:
+        return jsonify("error - must be a square matrix where n is a power of 2"), 418
 
 
 def test_matrix(size):
@@ -60,15 +62,32 @@ def parse_matrix(mat):
         mat_row = []
         for num in row[0].split():
             mat_row.append(int(num))
-
-        n = len(mat_row)
-        if not ((n & (n - 1) == 0) and n != 0):
-            print("error - matrix must be nxn, where n is a power of 2")
-            return []
-
         matrix.append(mat_row)
 
     return matrix
+
+
+def check_matrix(mat):
+    a = len(mat)
+
+    if not is_power_of_two(a):
+        print("error - matrix must be nxn, where n is a power of 2")
+        return False
+
+    for row in mat:
+        if not is_power_of_two((len(row))):
+            print("error - matrix must be nxn, where n is a power of 2")
+            return False
+
+        if len(row) != a:
+            print("error - matrix must be nxn, where n is a power of 2")
+            return False
+
+    return True
+
+
+def is_power_of_two(n):
+    return (n != 0) and (n & (n - 1) == 0)
 
 
 @app.route('/favicon.ico')
