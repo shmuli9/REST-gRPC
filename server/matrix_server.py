@@ -4,53 +4,47 @@ from concurrent import futures
 from multiprocessing import Process
 
 import grpc
+import numpy as np
 
 import matrix_pb2
 import matrix_pb2_grpc
 
 
-def list2mat(list_matrix):
+def np2mat(np_matrix):
     rpc_matrix = matrix_pb2.Mat()
-    for row in list_matrix:
-        v = matrix_pb2.Vector(value=row)
+
+    for row in np_matrix:
+        v = matrix_pb2.Vector(value=row.tolist())
         rpc_matrix.row.extend([v])
     return rpc_matrix
 
 
-def mat2list(rpc_matrix):
-    l = []
-    for row in rpc_matrix.row:
-        r = []
-        for val in row.value:
-            r.append(val)
-        l.append(r)
+def mat2np(rpc_matrix):
+    size = len(rpc_matrix.row)
+    l = np.ndarray([size, size], dtype=int)
+
+    for i in range(size):
+        row = rpc_matrix.row[i]
+        for j in range(size):
+            l[i, j] = row.value[j]
     return l
 
 
 class Matrix(matrix_pb2_grpc.MatrixCalcServicer):
 
     def BlockAdd(self, request, context):
-        A = mat2list(request.matA)
-        B = mat2list(request.matB)
-        MAX = len(A)
+        A = mat2np(request.matA)
+        B = mat2np(request.matB)
+        C = A + B
 
-        C = [[A[i][j] + B[i][j] for j in range(MAX)] for i in range(MAX)]
-
-        return matrix_pb2.Reply(matResult=list2mat(C))
+        return matrix_pb2.Reply(matResult=np2mat(C))
 
     def BlockMult(self, request, context):
-        A = mat2list(request.matA)
-        B = mat2list(request.matB)
-        MAX = len(A)
+        A = mat2np(request.matA)
+        B = mat2np(request.matB)
+        C = np.matmul(A, B)
 
-        C = [[0 for j in range(MAX)] for i in range(MAX)]
-
-        for i in range(MAX):
-            for j in range(MAX):
-                for k in range(MAX):
-                    C[i][j] += A[i][k] * B[k][j]
-
-        return matrix_pb2.Reply(matResult=list2mat(C))
+        return matrix_pb2.Reply(matResult=np2mat(C))
 
 
 def serve(port=8080):
