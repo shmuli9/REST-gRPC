@@ -1,5 +1,7 @@
+import asyncio
 import logging
-import random
+import math
+import time
 
 import grpc
 
@@ -7,7 +9,9 @@ import matrix_pb2
 import matrix_pb2_grpc
 
 
-def multiplyMatrixBlock(A, B):
+async def multiplyMatrixBlock(A, B, timeout):
+    deadline = timeout
+
     MAX = len(A)
     bSize = 2
 
@@ -45,10 +49,70 @@ def multiplyMatrixBlock(A, B):
             D1[i - bSize][j - bSize] = A[i][j]
             D2[i - bSize][j - bSize] = B[i][j]
 
-    A3 = mat2list(add(mult(A1, A2), mult(B1, C2)))
-    B3 = mat2list(add(mult(A1, B2), mult(B1, D2)))
-    C3 = mat2list(add(mult(C1, A2), mult(D1, C2)))
-    D3 = mat2list(add(mult(C1, B2), mult(D1, D2)))
+    # time first mult call, and work out how many servers needed to finish on time
+    print(f"footprinting... (matrix dim = {len(A)}, deadline = {deadline})")
+    stub = matrix_pb2_grpc.MatrixCalcStub(grpc.insecure_channel("localhost:8080"))
+
+    start = time.time()
+
+    temp1 = stub.BlockMult(matrix_pb2.Request(matA=list2mat(A1), matB=list2mat(A2))).matResult
+
+    time_taken = time.time() - start
+
+    servers_required = min(8, math.ceil((time_taken * 12) / deadline) + 1)
+    print(f"servers needed calculated at {servers_required} (took {time_taken}s for first mult calculation, "
+          f"deadline {deadline})")
+    mults = [(B1, C2), (A1, B2), (B1, D2), (C1, A2), (D1, C2), (C1, B2), (D1, D2)]  # pairs to multiply
+
+    temps = []
+    count = 0  # number of gRPC calls made
+    servers = [f"localhost:{port}" for port in range(8080, 8088)]  # servers to use
+
+    while True:
+        params = [(m1, m2) for (m1, m2) in mults[count:count + servers_required]]
+        for i in range(len(params)):
+            server = servers[int(i % servers_required)]
+            params[i] = (params[i][0], params[i][1], server)
+
+        temps_asyncs = asyncio.gather(*[mult(m1, m2, server) for (m1, m2, server) in params])
+        resolved = await temps_asyncs
+        # print(resolved[0], type(resolved[0]))
+        for item in resolved:
+            temps.append(item)
+
+        count += servers_required
+        if count >= 7:
+            break
+
+    # temp2, temp3, temp4, temp5, temp6, temp7, temp8 = temps
+    adds = [temp1, *temps]
+    adds = [(adds[i], adds[i+1]) for i in range(0, len(adds), 2)]
+    count = 0
+    tempAdds = []
+
+    while True:
+        params = [(m1, m2) for (m1, m2) in adds[count:count + servers_required]]
+
+        for i in range(len(params)):
+            server = servers[int(i % servers_required)]
+            params[i] = (params[i][0], params[i][1], server)
+
+        temps_asyncs = asyncio.gather(*[add(m1, m2, server) for (m1, m2, server) in params])
+        resolvedAdds = await temps_asyncs
+        # print(resolved[0], type(resolved[0]))
+        for item in resolvedAdds:
+            tempAdds.append(item)
+
+        count += servers_required
+        if count >= 7:
+            break
+
+    a3, b3, c3, d3 = tempAdds
+
+    A3 = mat2list(a3)
+    B3 = mat2list(b3)
+    C3 = mat2list(c3)
+    D3 = mat2list(d3)
 
     for i in range(bSize):
         for j in range(bSize):
@@ -69,24 +133,29 @@ def multiplyMatrixBlock(A, B):
     return res
 
 
-servers = [f"localhost:{port}" for port in range(8080, 8088)]
-
-
 def getStub():
-    server = random.choice(servers)
+    server = "localhost:8080"
     # print(f"using server {server}")
     stub = matrix_pb2_grpc.MatrixCalcStub(grpc.insecure_channel(server))
     return stub
 
 
-def add(A, B):
-    stub = getStub()
-    return stub.BlockAdd(matrix_pb2.Request(matA=A, matB=B)).matResult
+async def add(A, B, server):
+    print(f"add using server {server}")
+    options = [('grpc.max_message_length', 100 * 1024 * 1024)]
+    stub = matrix_pb2_grpc.MatrixCalcStub(grpc.aio.insecure_channel(server, options=options))
+    res = await stub.BlockAdd(matrix_pb2.Request(matA=A, matB=B))
+
+    return res.matResult
 
 
-def mult(A, B):
-    stub = getStub()
-    return stub.BlockMult(matrix_pb2.Request(matA=list2mat(A), matB=list2mat(B))).matResult
+async def mult(A, B, server):
+    print(f"mult using server {server}")
+    options = [('grpc.max_message_length', 100 * 1024 * 1024)]
+    stub = matrix_pb2_grpc.MatrixCalcStub(grpc.aio.insecure_channel(server, options=options))
+    res = await stub.BlockMult(matrix_pb2.Request(matA=list2mat(A), matB=list2mat(B)))
+
+    return res.matResult
 
 
 def mat2list(rpc_matrix):

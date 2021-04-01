@@ -54,7 +54,8 @@ class Matrix(matrix_pb2_grpc.MatrixCalcServicer):
 
 
 def serve(port=8080):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    options = [('grpc.max_message_length', 100 * 1024 * 1024)]
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), options=options)
     matrix_pb2_grpc.add_MatrixCalcServicer_to_server(Matrix(), server)
     server.add_insecure_port(f'[::]:{port}')
     server.start()
